@@ -48,8 +48,6 @@ FluidWaveform(~src,~indices);
 
 	defer{FluidWaveform(~src,~indices,featuresBuffer:features,stackFeatures:true)};
 	//defer{FluidWaveform(~src,~indices,featuresBuffer:loudness)};
-
-
 })
 )
 
@@ -83,11 +81,8 @@ FluidWaveform(~src,~indices);
 	s.sync;
 
 	~analysis.print;
-
-
 })
 )
-
 
 
 ///not needed here!!!!!!
