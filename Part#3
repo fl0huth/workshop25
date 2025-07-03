@@ -42,7 +42,6 @@ FluidWaveform(~src,~indices);
 
 		FluidBufLoudness.processBlocking(s,~src,start,duration,features: loudness, select:[\loudness]);  //we want loudness
 		FluidBufStats.processBlocking(s,loudness,stats: statsLoudness,select: [\mean]); //get the mean of the loudness
-
 	};
 
 	s.sync;
@@ -80,8 +79,6 @@ FluidWaveform(~src,~indices);
 
 		~analysis.addPoint(i,point); //we add our data "point" at id "i" to our dataset
 	};
-
-
 
 	s.sync;
 
