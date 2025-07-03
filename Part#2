@@ -5,6 +5,7 @@
 ///////////////Part 2/////////////////
 /////////////////////////////Part 2///
 
+Main Goal : Sort Audio by \centroid!
 
 //review////////////////////////
 ////////////////////////////////
@@ -14,9 +15,13 @@
 
 ~src = Buffer.read(s,FluidFilesPath("Nicol-LoopE-M.wav"));
 ~indices = Buffer(s);
+
 FluidBufOnsetSlice.processBlocking(s,~src,metric:9,threshold:0.5,indices:~indices,action:{"done!".postln});
 
 
+//raw data:
+~indices.loadToFloatArray(action:{arg data; data.postln})
+//as waveform
 FluidWaveform(~src,~indices);
 
 //get info out of buffer realm and explain
@@ -31,30 +36,30 @@ FluidWaveform(~src,~indices);
 (
 ~indices.loadToFloatArray(action: {
 	arg fa;
-	var features = Buffer(s);
-	
+	var features = Buffer(s); //our new storage for data from audio slices:
+
 	fa.doAdjacentPairs{|start,end,i|
 		var duration = end - start;
-		
-		[i,start,end].postln;
-		
+
+		[i,start,end].postln; //our start and end points in the form of [index,start,end]
+
 		FluidBufSpectralShape.processBlocking(s,~src,start,duration,features:features);
-		
+
 		//we want centroid!
 		//FluidBufSpectralShape.processBlocking(s,~src,start,duration,features:features,select:[\centroid]);
-		
+
 		//we get a time-series of spectral centroids!
-		
+
 		s.sync;
-		
+
 		//read output of buffer "features"
-		
+
 		features.loadToFloatArray(action:{
 			arg fa;
-			
+
 			fa.postln;
 			features.postln;
-			
+
 			" ".postln;
 		})
 	}
@@ -64,6 +69,7 @@ FluidWaveform(~src,~indices);
 //Buffer
 //what is in my buffer:
 //Buffer(8, 53, 1, 86.1328125, nil)
+
 /*
 1. Identifier (Bufnum)
 2. FFT Frames (Number)
@@ -78,30 +84,28 @@ FluidWaveform(~src,~indices);
 	arg fa;
 	var features = Buffer(s);
 	var stats = Buffer(s);
-	
+
 	fa.doAdjacentPairs{|start,end,i|
 		var duration = end - start;
-		
+
 		[i,start,end].postln;
-		
+
 		FluidBufSpectralShape.processBlocking(s,~src,start,duration,features:features,select:[\centroid]);
 		FluidBufStats.processBlocking(s,features,stats: stats, select: [\mean]);
 		//FluidBufStats can do this for any sized input from FluidBufSpectralShape. We only use \centroid.
-		
 		//we get a summary of a time-series of spectral centroids! (READ THAT AGAIN!!!!)
-		//one number for every slice
-		
-		
+		//one number for every slice against time series of numbers.
+
 		s.sync;
-		
+
 		//read output of buffer "stats"
-		
+
 		stats.loadToFloatArray(action:{
 			arg fa;
-			
+
 			fa.postln;
 			stats.postln;
-			
+
 			" ".postln;
 		})
 	}
@@ -119,36 +123,35 @@ FluidWaveform(~src,~indices);
 	var features = Buffer(s);
 	var stats = Buffer(s);
 	var meanCentroid = Buffer(s);
-	
+
 	fa.doAdjacentPairs{|start,end,i| //we now use the counter "i" in FluidBufCompose
 		var duration = end - start;
-		
+
 		[i,start,end].postln;
-		
+
 		FluidBufSpectralShape.processBlocking(s,~src,start,duration,features:features,select:[\centroid]);
 		FluidBufStats.processBlocking(s,features,stats: stats, select: [\mean]);
 		FluidBufCompose.processBlocking(s,stats,destination:meanCentroid,destStartFrame:i);
-		
-		s.sync;
-		
-		//read output of buffer "stats"
-		
-		meanCentroid.loadToFloatArray(action:{
-			arg fa;
-			
-			fa.postln;
-			meanCentroid.postln;
-			
-			" ".postln;
-		}
-	)}
+
+
+	};
+
+	s.sync;
+
+	//read output of buffer "stats"
+
+	meanCentroid.loadToFloatArray(action:{
+		arg fa;
+
+		fa.postln;
+
+		" ".postln; //more space in list. just for aesthetics!
+	})
 })
 )
 
-
-
 ///now we can sort our meancentroids
-
+///slightly updated function with a global variable to store the (array/buffer) "meanCentroid":
 
 (
 ~indices.loadToFloatArray(action: {
@@ -156,33 +159,34 @@ FluidWaveform(~src,~indices);
 	var features = Buffer(s);
 	var stats = Buffer(s);
 	var meanCentroid = Buffer(s);
-	
+
 	fa.doAdjacentPairs{|start,end,i| //we now use the counter "i" in FluidBufCompose
 		var duration = end - start;
-		
-		[i,start,end].postln;
-		
+
 		FluidBufSpectralShape.processBlocking(s,~src,start,duration,features:features,select:[\centroid]);
 		FluidBufStats.processBlocking(s,features,stats: stats, select: [\mean]);
-		FluidBufCompose.processBlocking(s,stats,destination:meanCentroid,destStartFrame:i);		
+		FluidBufCompose.processBlocking(s,stats,destination:meanCentroid,destStartFrame:i);
 		//read output of buffer "stats"
 	};
-	
+
 	s.sync;
-	
+
 	meanCentroid.loadToFloatArray(action:{
 		arg fa;
-		
+
 		~meanCentroid = fa; //we use a global variable to get out of our functionspace here!
-		
+
+		"Done!".postln;
+
+		~meanCentroid.postln;
 	}
 	)
 })
 )
 
-//and sort it with a method 
+//and sort it with a method
 
-~meanCentroid.sort;
+~meanCentroid.sort; //reEvaluate
 
 //but we still need the indices of the (now) spectral centroid
 //~meanCentroid will be altered but we use a new global variable to be safe and not sorry
@@ -198,15 +202,15 @@ FluidWaveform(~src,~indices);
 	{
 		var start = Index.kr(~indices,index);
 		var end = Index.kr(~indices,index + 1);
-		
+
 		var head = Phasor.ar(0,BufRateScale.kr(~src),start,end);
-		
+
 		var play = BufRd.ar(1,~src,head);
-		
+
 		var time = end - start / SampleRate.ir(~src);
-		
+
 		var env = EnvGen.ar(Env.new([0,1,1,0],[0.005,time-0.035,0.03]),doneAction:2);
-		
+
 		play * env
 	}.play;
 }
@@ -219,15 +223,11 @@ FluidWaveform(~src,~indices);
 fork{
 	~order.do{|i|
 		~playSlice.(i);
+		"Slice Index Number %".format(i).postln;
 		0.1.wait;
 	}
 }
 )
-
-//make more interesting sounds
-
-
-"/Users/lf0/samples/doroMixed/test/"
 
 
 
