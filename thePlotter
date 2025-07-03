@@ -1,0 +1,189 @@
+///now to something completely different!!!
+
+//show blender
+
+(
+~analysis.dump({
+	arg dict;
+	dict.postln; //we get a dictionary of our valuable data style [\name,[\id,[meanCentroid,meanAmp]],etc....]
+
+	//we can pass it to the "FluidPlotter" object;
+	//cracy "defer" action here.....
+
+	defer{
+		FluidPlotter(dict:dict);
+	};
+
+	//well shit. FluidPlotter only shows 0 => 1 on X/Y.
+
+	// we have like ([13 -> [ 3189.0432128906, -28.027585983276 ])
+
+	//sounds like some transformational magic is needed here
+}
+)
+)
+
+//make it dump:
+
+(
+~analysis.dump({
+	arg dict;
+	dict.postln;
+
+	//ok....convert numbers by (christopher) guess. ride like the wind!
+
+	defer{
+		FluidPlotter(dict:dict, xmin:0, xmax:20000, ymin: -100, ymax: 0);
+	};
+
+	//cool! But how to interact with it?
+}
+)
+)
+
+//make it mouse, make it plot mouse position:
+
+(
+~analysis.dump({
+	arg dict;
+	dict.postln;
+
+	//mouse move action
+
+	defer{
+		FluidPlotter(dict:dict, xmin:0, xmax:20000, ymin: -100, ymax: 0, mouseMoveAction:{
+			arg view,x, y; // we get view(the object,xVal,yVal
+
+			[x,y].postln;
+		}
+		);
+	};
+}
+)
+)
+
+//how to find (and possibly abuse) your neighbours!
+//with a KDTree!
+
+~kdTree = FluidKDTree(s);
+
+//KDTree will find the nearest neighbour by comparing your mouse position [x,y] to our great and wonderful dataset [x,y]!
+//It will "fit" to our ranges with the method fit!
+
+~kdTree.fit(~analysis);
+
+(
+~analysis.dump({
+	arg dict;
+	var point = Buffer.alloc(s,2); //two vals for x and y
+	dict.postln;
+	defer{
+		FluidPlotter(dict:dict, xmin:0, xmax:20000, ymin: -100, ymax: 0, mouseMoveAction:{
+			arg view,x, y;
+
+			[x,y].postln;
+
+			point.setn(0,[x,y]);
+
+			~kdTree.kNearest(point,1,{
+				arg nearest;
+				nearest.postln;
+			}
+			)
+		};
+		)
+	}
+}
+)
+)
+
+
+//remember our (t)rusty sampler/////////
+///////////______________________///////
+////////////////////////////////////////
+
+//we now get the index of the closest point on our map to our mouse!
+//so we can call the the position in frames in the order we present (click) it on the 2dmap
+
+(
+~playSlice = {|index|
+	{
+		var start = Index.kr(~indices,index);
+		var end = Index.kr(~indices,index + 1);
+
+		var head = Phasor.ar(0,BufRateScale.kr(~src),start,end);
+
+		var play = BufRd.ar(1,~src,head);
+
+		var time = end - start / SampleRate.ir(~src);
+
+		var env = EnvGen.ar(Env.new([0,1,1,0],[0.005,time-0.035,0.03]),doneAction:2);
+
+		play * env
+	}.play;
+}
+)
+
+//letsegotime!
+
+(
+~analysis.dump({
+	arg dict;
+	var point = Buffer.alloc(s,2); //two vals for x and y
+	dict.postln;
+	defer{
+		FluidPlotter(dict:dict, xmin:0, xmax:20000, ymin: -100, ymax: 0, mouseMoveAction:{
+			arg view,x, y;
+
+			[x,y].postln;
+
+			point.setn(0,[x,y]);
+
+			~kdTree.kNearest(point,1,{
+				arg nearest;
+				nearest.postln;
+
+				~playSlice.(nearest.asInteger) //here we call our function ~playslice with arg nearest. it comes the wrong datatype so .asInteger is needed to interpret it the right way
+			}
+			)
+		};
+		)
+	}
+}
+)
+)
+
+
+//the quest to kill the doubletriggerz!
+
+(
+~analysis.dump({
+	arg dict;
+	var point = Buffer.alloc(s,2);
+	var previous = nil;
+	dict.postln;
+	defer{
+		FluidPlotter(dict:dict, xmin:0, xmax:20000, ymin: -100, ymax: 0, mouseMoveAction:{
+			arg view,x, y;
+
+			[x,y].postln;
+
+			point.setn(0,[x,y]);
+
+			~kdTree.kNearest(point,1,{
+				arg nearest;
+
+				nearest.postln;
+
+				if(nearest != previous,{ ~playSlice.(nearest.asInteger) }, { nil }); //we ask if "previous" is nearest. first time pre is "nil" so cant be same and has to play. so we play =)
+
+				//previous = nearest; then we declare nearest to previous and ask again
+			}
+			)
+		};
+		)
+	}
+}
+)
+)
+
