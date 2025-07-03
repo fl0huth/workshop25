@@ -1,0 +1,54 @@
+//Part 4//////////////////////////////
+///////////////Part 4/////////////////
+/////////////////////////////Part 4///
+//Part 4//////////////////////////////
+///////////////Part 4/////////////////
+/////////////////////////////Part 4///
+
+Main Goal : Make (things through) Scaling Small (not great) Again (ur obvious reference)
+
+/*
+its not that hard. we need to find the min and max of our values. and normalize our values of again \centroid and \loudness
+*/
+(
+~normed = FluidDataSet(s); //new dataset for normal values
+FluidNormalize(s).fitTransform(~analysis,~normed); //use "~analysis" dataset and fit transform it to "~normed"
+)
+
+~normed.print; //check how it is going
+
+
+//make new kdTree with "~normed" dataset
+
+~kdTree = FluidKDTree(s);
+~kdTree.fit(~normed);
+
+//instead of analysis we use our new "~normed" dataset to print with our Fluidplotter
+(
+~normed.dump({
+	arg dict;
+	var point = Buffer.alloc(s,2);
+	var previous = nil;
+	dict.postln;
+	defer{
+		FluidPlotter(dict:dict, mouseMoveAction:{
+			arg view,x, y;
+
+			[x,y].postln;
+
+			point.setn(0,[x,y]);
+
+			~kdTree.kNearest(point,1,{
+				arg nearest;
+
+				nearest.postln;
+				if(nearest != previous,{ ~playSlice.(nearest.asInteger); view.highlight_(nearest); }, { nil });
+				previous = nearest;
+			}
+			)
+		};
+		)
+	}
+}
+)
+)
